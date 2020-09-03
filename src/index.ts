@@ -1,54 +1,81 @@
-import puppeteer, { Browser, Page } from 'puppeteer';
+import puppeteer from 'puppeteer';
 import * as utils from './utils';
 import fs from 'fs';
+import Treemodel, { Node } from 'tree-model';
+import { createStringLiteral } from 'typescript';
+import { LinkModel } from './utils';
+import { Stack } from 'typescript-collections';
+import { Navigator } from './navigator';
 
-interface Hash {
+interface HashMap {
   [index: string]: boolean;
 }
+
+export const tree = new Treemodel();
 
 (async () => {
   console.log(`asd`);
 
   try {
     const browser = await puppeteer.launch();
-    console.log(`did init`);
     const page = await browser.newPage();
-    console.log(`navia`);
 
     const BASE_URL = 'http://wwwviejo.unaj.edu.ar';
 
-    await page.goto(BASE_URL);
-    await page.setViewport({ width: 1920, height: 1080 });
-    const links = await page.$$eval('a', (as) =>
-      as.map((a) => {
-        if (a.hasAttribute('href')) {
-          return a.getAttribute('href')!;
-        } else {
-          return '';
-        }
-      })
-    );
+    const getLinks = utils.prepareLinkFetcher(page);
 
-    //diferenciar entre relativos y externos
+    const navigator = new Navigator(BASE_URL, getLinks);
 
-    const uniq = utils.removeDuplicated(links);
-    console.log(uniq.length);
+    const firstLinks = utils.removeDuplicated(await getLinks(BASE_URL));
 
-    // filtrar hrefs inusables
-    const hrefs = uniq
-      .filter((l) => l !== '')
-      .filter((l) => l !== '#')
-      .filter((l) => l.match(/javascript.*/) == null);
+    await navigator.traverse(firstLinks);
 
-    const relativos = hrefs.filter((href) => href.match(/^\/.*/) !== null);
+    //const links = utils.removeDuplicated(await getLinks(BASE_URL));
 
-    //TODO: filtrar links no relativos hacia la misma pagina
-    // ej: 'http://wwwviejo.unaj.edu.ar'
-    const externos = hrefs.filter((href) => href.match(/^\/.*/) == null);
-    console.log(`relativos: ${relativos.length}`);
-    console.log(`externos: ${externos.length}`);
-    console.log(externos);
-    fs.writeFileSync('relativos', relativos.join('\n'), { encoding: 'utf8' });
+    //const hashmap: HashMap = {};
+
+    ////filtrar links repetidos
+    //links.map((l) => {
+    //  hashmap[l] ||= true;
+    //});
+
+    // const child_url = BASE_URL + links[0];
+    // const childLinks = utils.filterBy(await getLinks(child_url), hashmap);
+
+    // // console.log(childLinks);
+
+    // const child_url2 = BASE_URL + childLinks[0];
+    // const childLinks2 = utils.filterBy(await getLinks(child_url2), hashmap);
+
+    // console.log(childLinks2);
+
+    //const loop = async () => {
+    //  let siblingsFilter: HashMap = {};
+
+    //  for (let child of links) {
+    //    const url = BASE_URL + child;
+    //    // await page.goto(BASE_URL + child.model.url);
+    //    const childLinks = utils.filterBy(await getLinks(url), hashmap);
+
+    //    const html = await page.content();
+
+    //    const filename = utils.slugify(url).concat('.html');
+
+    //    fs.writeFileSync(filename, html, { encoding: 'utf8' });
+
+    //    const filtered = utils.filterBy(childLinks, siblingsFilter);
+
+    //    console.log(`unfiltered length is ${childLinks.length}`);
+    //    console.log(`filtered length is ${filtered.length}`);
+
+    //    //filter by parent links duplicated
+    //    childLinks.map((l) => {
+    //      siblingsFilter[l] ||= true;
+    //    });
+    //  }
+    //};
+
+    // await loop();
 
     await browser.close();
   } catch (e) {
