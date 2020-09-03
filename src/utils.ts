@@ -2,6 +2,8 @@ import { Page } from 'puppeteer';
 import Treemodel, { Node } from 'tree-model';
 import { tree } from './index';
 import { Stack } from 'typescript-collections';
+import fs from 'fs';
+import path from 'path';
 
 interface Hash {
   [index: string]: boolean;
@@ -32,6 +34,16 @@ export function prepareLinkFetcher(
 ): (url: string) => Promise<string[]> {
   return async (url: string) => {
     await page.goto(url);
+
+    const [perf] = JSON.parse(
+      await page.evaluate(() => {
+        const perf = performance.getEntriesByType('navigation');
+        return JSON.stringify(perf);
+      })
+    );
+
+    console.log(`time was: ${perf.responseEnd - perf.fetchStart}`);
+
     await page.setViewport({ width: 1920, height: 1080 });
     const links = await page.$$eval('a', (as) =>
       as.map((a) => {
@@ -82,4 +94,41 @@ export function slugify(text: string) {
     .replace(/\-\-+/g, '-') // Replace multiple - with single -
     .replace(/^-+/, '') // Trim - from start of text
     .replace(/-+$/, ''); // Trim - from end of text
+}
+
+export function extractSection(url: string): string {
+  const filter = url
+    .split('/')
+    .filter((i) => !i.includes('php'))
+    .join('/');
+
+  const section = filter.replace(/(\/.*\/).*/, (_, match) => {
+    return match;
+  });
+  return section;
+}
+
+export function extractSlug(url: string): string {
+  const filter = url
+    .split('/')
+    .filter((i) => !i.includes('php'))
+    .join('/');
+
+  const slug = filter.replace(/\/.*\/(.*)/, (_, match) => {
+    return match;
+  });
+  return slug;
+}
+
+export function createDirectoryIfNotExists(dirpath: string) {
+  const resolved = path.resolve(__dirname + dirpath);
+  console.log(`trying to create dir ${resolved}`);
+
+  try {
+    fs.mkdirSync(resolved, { recursive: true });
+  } catch (e) {
+    if (e.code !== 'EEXIST') {
+      throw e;
+    }
+  }
 }

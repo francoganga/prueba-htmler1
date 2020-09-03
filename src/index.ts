@@ -24,30 +24,19 @@ export const tree = new Treemodel();
 
     const getLinks = utils.prepareLinkFetcher(page);
 
-    const navigator = new Navigator(BASE_URL, getLinks);
+    const navigator = new Navigator(BASE_URL, getLinks, page);
 
-    const firstLinks = utils.removeDuplicated(await getLinks(BASE_URL));
+    // const firstLinks = utils.removeDuplicated(await getLinks(BASE_URL));
 
-    await navigator.traverse(firstLinks);
+    await navigator.traverse(BASE_URL);
+    //
+    //
+    // const testE =
+    //   'http://wwwviejo.unaj.edu.ar/bibliounaj/index.php?option=com_phocadownload&view=category&download=410:problemas-de-historia-argentina&id=37:programas&Itemid=158';
 
-    //const links = utils.removeDuplicated(await getLinks(BASE_URL));
+    // await page.goto(testE);
 
-    //const hashmap: HashMap = {};
-
-    ////filtrar links repetidos
-    //links.map((l) => {
-    //  hashmap[l] ||= true;
-    //});
-
-    // const child_url = BASE_URL + links[0];
-    // const childLinks = utils.filterBy(await getLinks(child_url), hashmap);
-
-    // // console.log(childLinks);
-
-    // const child_url2 = BASE_URL + childLinks[0];
-    // const childLinks2 = utils.filterBy(await getLinks(child_url2), hashmap);
-
-    // console.log(childLinks2);
+    //fs.writeFileSync('perf', perf, { encoding: 'utf8' });
 
     //const loop = async () => {
     //  let siblingsFilter: HashMap = {};
@@ -79,6 +68,6 @@ export const tree = new Treemodel();
 
     await browser.close();
   } catch (e) {
-    console.error(e);
+    console.error(e.message);
   }
 })();
