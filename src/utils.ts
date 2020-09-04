@@ -1,9 +1,7 @@
 import { Page } from 'puppeteer';
-import Treemodel, { Node } from 'tree-model';
-import { tree } from './index';
-import { Stack } from 'typescript-collections';
 import fs from 'fs';
 import path from 'path';
+import fetch from 'node-fetch';
 
 interface Hash {
   [index: string]: boolean;
@@ -55,6 +53,8 @@ export function prepareLinkFetcher(
       })
     );
 
+    console.log(`after filter: ${links.length}`);
+
     // ignorar links externos
 
     const uniq = removeDuplicated(links);
@@ -70,15 +70,13 @@ export function prepareLinkFetcher(
       .filter((l) => l.match(/.*xlsx$/) == null)
       .filter((l) => l.match(/.*doc$/) == null)
       .filter((l) => l.match(/.*ppt$/) == null)
+      .filter((l) => l.match(/index.php$/) == null)
+      .filter((l) => l.match(/\?/) == null)
       .filter((l) => l.match(/mailto/) == null)
       .filter((l) => l.match(/.*docx$/) == null);
 
     return hrefs.filter((href) => href.match(/^\/.*/) !== null);
   };
-}
-
-export function createNode(node: LinkModel): Node<LinkModel> {
-  return tree.parse(node);
 }
 
 export function filterBy(source: string[], hash: Hash) {
@@ -120,10 +118,9 @@ export function extractSlug(url: string): string {
   return slug;
 }
 
-export function createDirectoryIfNotExists(dirpath: string) {
-  const resolved = path.resolve(__dirname + dirpath);
+export function createDirectoryIfNotExists(dirpath: string, outDir: string) {
+  const resolved = path.resolve(process.cwd() + '/' + outDir + dirpath);
   console.log(`trying to create dir ${resolved}`);
-
   try {
     fs.mkdirSync(resolved, { recursive: true });
   } catch (e) {
@@ -131,4 +128,10 @@ export function createDirectoryIfNotExists(dirpath: string) {
       throw e;
     }
   }
+}
+
+export function linksToRelative(html: string) {
+  return html.replace(/href=("|')\/index.php(.*)\1/gi, (_, _2, match) =>
+    'href='.concat('.', match)
+  );
 }
