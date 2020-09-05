@@ -45,27 +45,13 @@ export function slugify(text: string) {
 }
 
 export function extractSection(url: string): string {
-  const filter = url
-    .split('/')
-    .filter((i) => !i.includes('php'))
-    .join('/');
-
-  const section = filter.replace(/(\/.*\/).*/, (_, match) => {
-    return match;
+  return url.replace(/(^((https?:\/\/)|\/)[a-z0-9.]*\/).*/, (_full, first) => {
+    return first;
   });
-  return section;
 }
 
 export function extractSlug(url: string): string {
-  const filter = url
-    .split('/')
-    .filter((i) => !i.includes('php'))
-    .join('/');
-
-  const slug = filter.replace(/\/.*\/(.*)/, (_, match) => {
-    return match;
-  });
-  return slug;
+  return url.replace(/^((https?:\/\/)|\/)[a-z0-9.]*\//, '');
 }
 
 export function createDirectoryIfNotExists(dirpath: string, outDir: string) {
