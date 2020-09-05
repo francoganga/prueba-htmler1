@@ -6,6 +6,7 @@ import {
   extractSection,
   createDirectoryIfNotExists,
   linksToRelative,
+  removeDuplicated
 } from './utils';
 import fs from 'fs';
 import path from 'path';
@@ -18,18 +19,15 @@ interface Hash {
 export class Navigator {
   private filter: Hash;
   private toVisit;
-  private linkFetcher;
   private baseUrl: string | undefined;
   private count = 0;
   private page;
   private outDir: string;
 
   constructor(
-    linkFetcher: (url: string) => Promise<string[]>,
     page: Page,
     outDir: string
   ) {
-    this.linkFetcher = linkFetcher;
     this.toVisit = new Stack<string>();
     this.filter = {};
     this.page = page;
@@ -41,12 +39,19 @@ export class Navigator {
 
     // Puede haber problemas aca mas adelante
     if (url) {
-      this.baseUrl = url;
       let root: string[];
       try {
-        root = await this.linkFetcher(url);
+        root = await this.getLinks(url);
+
+        console.log(`testing with baseurl: [${this.baseUrl!}]`)
+        const filter = root.filter(l => {
+          if (l.includes(this.baseUrl!)) {
+            return true;
+          }
+        });
+
         console.log(`Found ${root.length} initial links\n`);
-        root.map((l) => {
+        filter.map((l) => {
           this.filter[l] ||= true;
           this.toVisit.add(l);
         });
@@ -58,13 +63,13 @@ export class Navigator {
     } else {
       const toVisit = this.toVisit.pop()!;
 
-      const full = this.baseUrl + toVisit;
+      //const full = this.baseUrl + toVisit;
 
       try {
         if (Object.keys(this.filter).length !== 0) {
-          newLinks = filterBy(await this.linkFetcher(full), this.filter);
+          newLinks = filterBy(await this.getLinks(toVisit), this.filter);
         } else {
-          newLinks = await this.linkFetcher(full);
+          newLinks = await this.getLinks(toVisit);
         }
         console.log(`Iteration number: ${this.count}`);
 
@@ -88,7 +93,7 @@ export class Navigator {
         // Si es un link a una imagen descargar con fetch.
         const isImg = toVisit.match(/.*(\.(png|jpg|jpeg))$/);
         if (isImg) {
-          const imgResponse = await fetch(full);
+          const imgResponse = await fetch(toVisit);
           const filename = slug.replace(/%20/gi, '-');
           const filePath = process
             .cwd()
@@ -127,5 +132,68 @@ export class Navigator {
     if (this.toVisit.size() > 0) {
       await this.traverse();
     }
+  }
+
+
+  async getLinks(url: string) {
+
+    if (this.baseUrl === undefined) {
+        const response = await this.page.goto(url);
+
+        if (response) {
+          const chain = response.request().redirectChain();
+          console.log(chain.length);
+          const redirectUrl = chain[0].frame()?.url();
+          if (redirectUrl) {
+            console.log('used redirectUrl')
+            this.baseUrl = redirectUrl;
+            console.log(`baseurl: ${this.baseUrl}`)
+          } else {
+            console.log('not redirecturl')
+            this.baseUrl = url;
+          }
+          console.log(chain[0].frame()?.url());
+        }
+    }
+
+      const [perf] = JSON.parse(
+        await this.page.evaluate(() => {
+          const perf = performance.getEntriesByType('navigation');
+          return JSON.stringify(perf);
+        })
+      );
+
+      console.log(`time was: ${perf.responseEnd - perf.fetchStart}`);
+
+      await this.page.setViewport({ width: 1920, height: 1080 });
+      const links = await this.page.$$eval('a', (as) =>
+        as.map((a) => {
+          if (a.hasAttribute('href')) {
+            return a.getAttribute('href')!;
+          } else {
+            return '';
+          }
+        })
+      );
+
+      const uniq = removeDuplicated(links);
+
+      // filtrar hrefs inusables
+      // TODO: Mejorar este filtrado
+      const hrefs = uniq
+        .filter((l) => l !== '')
+        .filter((l) => l !== '#')
+        .filter((l) => l.match(/javascript.*/) == null)
+        .filter((l) => l.match(/.*pdf$/) == null)
+        .filter((l) => l.match(/.*xls$/) == null)
+        .filter((l) => l.match(/.*xlsx$/) == null)
+        .filter((l) => l.match(/.*doc$/) == null)
+        .filter((l) => l.match(/.*ppt$/) == null)
+        .filter((l) => l.match(/index.php$/) == null)
+        .filter((l) => l.match(/\?/) == null)
+        .filter((l) => l.match(/mailto/) == null)
+        .filter((l) => l.match(/.*docx$/) == null);
+
+        return hrefs;
   }
 }
