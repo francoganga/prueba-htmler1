@@ -37,6 +37,7 @@ export function slugify(text: string) {
   return text
     .toString()
     .toLowerCase()
+    .replace(/\//gi, '-')
     .replace(/\s+/g, '-') // Replace spaces with -
     .replace(/[^\w\-]+/g, '') // Remove all non-word chars
     .replace(/\-\-+/g, '-') // Replace multiple - with single -
@@ -45,13 +46,35 @@ export function slugify(text: string) {
 }
 
 export function extractSection(url: string): string {
-  return url.replace(/(^((https?:\/\/)|\/)[a-z0-9.]*\/).*/, (_full, first) => {
-    return first;
-  });
+  const filterDomain = url.replace(
+    /^((https?:\/\/[a-z0-9.-]*)|\/[a-z0-9.]*)(\/.*)/,
+    (_full, _, _2, last) => {
+      return last;
+    }
+  );
+
+  return filterDomain.replace(
+    /(^\/[a-z0-9-.]*\/(?:[a-z0-9-.]*\/)*)(.*)/,
+    (_full, first) => {
+      return first;
+    }
+  );
 }
 
 export function extractSlug(url: string): string {
-  return url.replace(/^((https?:\/\/)|\/)[a-z0-9.]*\//, '');
+  const filterDomain = url.replace(
+    /^((https?:\/\/[a-z0-9.-]*)|\/[a-z0-9.]*)(\/.*)/,
+    (_full, _, _2, last) => {
+      return last;
+    }
+  );
+
+  return filterDomain.replace(
+    /(^\/[a-z0-9-.]*\/(?:[a-z0-9-.]*\/)*)(.*)/,
+    (_full, _, last) => {
+      return last;
+    }
+  );
 }
 
 export function createDirectoryIfNotExists(dirpath: string, outDir: string) {

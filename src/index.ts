@@ -3,28 +3,57 @@ import * as utils from './utils';
 import { Navigator } from './navigator';
 import yargs from 'yargs';
 import fs from 'fs';
+import fetch from 'node-fetch';
+import { slugify, extractSlug } from './utils';
 
 (async () => {
   try {
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
+    await page.setRequestInterception(true);
 
-    const url = 'https://www.unaj.edu.ar';
-    await page.goto(url);
+    const url = 'http://campus.unaj.edu.ar';
 
-    const links = await page.$$eval('a', (as) =>
-      as.map((a) => {
-        if (a.hasAttribute('href')) {
-          return a.getAttribute('href')!;
-        } else {
-          return '';
+    fs.mkdirSync(__dirname + '/assets', { recursive: true });
+
+    console.log('inicio');
+    page.on('request', async (request) => {
+      try {
+        const url = new URL(request.url());
+        const resType = request.resourceType();
+        if (resType === 'script' || resType === 'image') {
+          const asset = await fetch(url);
+          console.log(url.href);
+
+          const dirpath = __dirname.concat(
+            '/assets',
+            url.pathname.replace(/(\/(?:[a-zA-Z0-9\._-]*\/)*).*/, (_, a) => a)
+          );
+          console.log(`dirpath: [${dirpath}]`);
+
+          fs.mkdirSync(dirpath, { recursive: true });
+
+          if (asset) {
+            console.log('hay asset');
+            const filePath = __dirname.concat('/assets', url.pathname);
+            console.log(`filePath [${filePath}]`);
+
+            const buffer = await asset.buffer();
+            console.log(`created buffer`);
+
+            fs.writeFileSync(filePath, buffer);
+            console.log(`wrote file`);
+          }
         }
-      })
-    );
+        request.continue();
+      } catch (e) {
+        console.error(e.message);
+        request.continue();
+      }
+    });
 
-    const filtered = links.filter((l) => l.includes(url));
-
-    fs.writeFileSync('links', filtered.join('\n'));
+    await page.goto(url, { waitUntil: 'networkidle0', timeout: 14_000 });
+    console.log('cargo?');
 
     // const argv = yargs
     //   .usage('HTMLER \n\nUsage: $0 -u [url] [options]')
@@ -58,6 +87,7 @@ import fs from 'fs';
     //   const navigator = new Navigator(page, outDir);
     //   await navigator.traverse(parseUrl);
     // }
+    // console.log('finished');
     await browser.close();
   } catch (e) {
     console.error(e.message);

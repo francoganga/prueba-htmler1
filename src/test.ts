@@ -12,13 +12,13 @@ describe('Extract domain and last part of url', () => {
       'https://www.unaj.edu.ar/carreras/ciencias-sociales-y-administracion/heurigheurigheirugheirugheirgu-asd-asd';
 
     const res1 = utils.extractSection(url1);
-    expect(res1).to.equal('/index.php/');
+    expect(res1).to.equal('/noticias/');
 
     const res2 = utils.extractSection(url2);
-    expect(res2).to.equal('https://www.unaj.edu.ar/');
+    expect(res2).to.equal('/carreras/ciencias-sociales-y-administracion/');
 
     const res3 = utils.extractSection(url3);
-    expect(res3).to.equal('https://www.unaj.edu.ar/');
+    expect(res3).to.equal('/carreras/ciencias-sociales-y-administracion/');
   });
 
   it('should extract slug from url', () => {
@@ -30,14 +30,12 @@ describe('Extract domain and last part of url', () => {
       'https://www.unaj.edu.ar/carreras/ciencias-sociales-y-administracion/heurigheurigheirugheirugheirgu-asd-asd';
 
     const res1 = utils.extractSlug(url1);
-    expect(res1).to.equal('noticias/20123-una-noticia');
+    expect(res1).to.equal('20123-una-noticia');
 
     const res2 = utils.extractSlug(url2);
-    expect(res2).to.equal('carreras/ciencias-sociales-y-administracion/');
+    expect(res2).to.equal('');
 
     const res3 = utils.extractSlug(url3);
-    expect(res3).to.equal(
-      'carreras/ciencias-sociales-y-administracion/heurigheurigheirugheirugheirgu-asd-asd'
-    );
+    expect(res3).to.equal('heurigheurigheirugheirugheirgu-asd-asd');
   });
 });

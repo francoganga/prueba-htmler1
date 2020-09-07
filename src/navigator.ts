@@ -44,14 +44,9 @@ export class Navigator {
         root = await this.getLinks(url);
 
         console.log(`testing with baseurl: [${this.baseUrl!}]`)
-        const filter = root.filter(l => {
-          if (l.includes(this.baseUrl!)) {
-            return true;
-          }
-        });
 
         console.log(`Found ${root.length} initial links\n`);
-        filter.map((l) => {
+        root.map((l) => {
           this.filter[l] ||= true;
           this.toVisit.add(l);
         });
@@ -86,7 +81,11 @@ export class Navigator {
         // Create folder & replace href in generated html and save the file.
         // TODO: relative links in generated html
         //
-        const slug = extractSlug(toVisit);
+        let slug = extractSlug(toVisit);
+
+        if (slug === '') {
+          slug = 'index.html';
+        }
         const section = extractSection(toVisit);
         createDirectoryIfNotExists(section, this.outDir);
 
@@ -192,8 +191,12 @@ export class Navigator {
         .filter((l) => l.match(/index.php$/) == null)
         .filter((l) => l.match(/\?/) == null)
         .filter((l) => l.match(/mailto/) == null)
-        .filter((l) => l.match(/.*docx$/) == null);
-
+        .filter((l) => l.match(/.*docx$/) == null)
+        .filter(l => {
+          if (l.includes(this.baseUrl!)) {
+            return true;
+          }
+        });
         return hrefs;
   }
 }
