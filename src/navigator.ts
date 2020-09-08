@@ -1,17 +1,9 @@
 import { Page } from 'puppeteer';
 import { Stack } from 'typescript-collections';
-import {
-  filterBy,
-  extractSlug,
-  extractSection,
-  createDirectoryIfNotExists,
-  linksToRelative,
-  removeDuplicated,
-} from './utils';
+import { filterBy, extractSlug, removeDuplicated, toFilename } from './utils';
 import fs from 'fs';
 import path from 'path';
 import fetch from 'node-fetch';
-import parse from 'node-html-parser';
 
 interface Hash {
   [index: string]: boolean;
@@ -49,9 +41,9 @@ export class Navigator {
           this.toVisit.add(new URL(l));
         });
 
-        const mainDir = path.join(process.cwd(), this.outDir).concat('/')
-        console.log(`creating ${mainDir}`)
-        fs.mkdirSync(mainDir, { recursive: true, });
+        const mainDir = path.join(process.cwd(), this.outDir).concat('/');
+        console.log(`creating ${mainDir}`);
+        fs.mkdirSync(mainDir, { recursive: true });
 
         const html = await this.page.content();
 
@@ -94,11 +86,8 @@ export class Navigator {
         // Create folder & replace href in generated html and save the file.
         // TODO: relative links in generated html
         //
-        let slug = extractSlug(toVisit.href);
+        let slug = toFilename(toVisit.pathname);
 
-        if (slug === '') {
-          slug = 'index';
-        }
         //const section = extractSection(toVisit.href);
         //createDirectoryIfNotExists(section, this.outDir);
 
@@ -108,7 +97,7 @@ export class Navigator {
           console.log('is image');
           const imgResponse = await fetch(toVisit);
           const filename = slug.replace(/%20/gi, '-');
-          const filePath = path.join(process.cwd(), this.outDir, filename)
+          const filePath = path.join(process.cwd(), this.outDir, filename);
 
           console.log(`filePath  ${filePath}\n\n`);
           if (imgResponse) {
@@ -128,9 +117,9 @@ export class Navigator {
             process.cwd(),
             this.outDir,
             slug.concat('.html')
-          )
+          );
 
-          console.log(`filenamefile ${filename}`)
+          console.log(`filenamefile ${filename}`);
           fs.writeFileSync(filename, html, { encoding: 'utf8' });
 
           console.log(`slug: ${slug}\n\n`);
@@ -148,7 +137,6 @@ export class Navigator {
   }
 
   async getLinks(url: string, first?: boolean) {
-
     const response = await this.page.goto(url);
     if (first) {
       if (response) {
@@ -277,6 +265,5 @@ export class Navigator {
     this.page.removeListener('request', handleRequest);
     this.page.setRequestInterception(false);
     console.log('removed event listener and stoped request interception');
-
   }
 }

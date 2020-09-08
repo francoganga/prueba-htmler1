@@ -95,3 +95,7 @@ export function linksToRelative(html: string) {
     (_, coma, _g2, g3) => 'href='.concat(coma, '.', g3, coma)
   );
 }
+
+export function toFilename(url: string) {
+  return url.replace(/\//gi, '_');
+}
