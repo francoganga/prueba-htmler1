@@ -11,6 +11,7 @@ import {
 import fs from 'fs';
 import path from 'path';
 import fetch from 'node-fetch';
+import parse from 'node-html-parser';
 
 interface Hash {
   [index: string]: boolean;
@@ -38,8 +39,6 @@ export class Navigator {
     if (first) {
       let root: string[];
       try {
-        await this.downloadAssets();
-
         root = await this.getLinks(this.baseUrl, true);
 
         console.log(`testing with baseurl: [${this.baseUrl}]`);
@@ -50,13 +49,11 @@ export class Navigator {
           this.toVisit.add(new URL(l));
         });
 
-        //Asdasasd
+        const mainDir = path.join(process.cwd(), this.outDir).concat('/')
+        console.log(`creating ${mainDir}`)
+        fs.mkdirSync(mainDir, { recursive: true, });
 
-        fs.mkdirSync(path.resolve(process.cwd().concat(this.outDir)), {
-          recursive: true,
-        });
-
-        const html = linksToRelative(await this.page.content());
+        const html = await this.page.content();
 
         const filename = path.resolve(
           process.cwd().concat(this.outDir),
@@ -102,8 +99,8 @@ export class Navigator {
         if (slug === '') {
           slug = 'index';
         }
-        const section = extractSection(toVisit.href);
-        createDirectoryIfNotExists(section, this.outDir);
+        //const section = extractSection(toVisit.href);
+        //createDirectoryIfNotExists(section, this.outDir);
 
         // Si es un link a una imagen descargar con fetch.
         const isImg = toVisit.href.match(/.*(\.(png|jpg|jpeg))$/);
@@ -111,9 +108,8 @@ export class Navigator {
           console.log('is image');
           const imgResponse = await fetch(toVisit);
           const filename = slug.replace(/%20/gi, '-');
-          const filePath = process
-            .cwd()
-            .concat('/', this.outDir, section, filename);
+          const filePath = path.join(process.cwd(), this.outDir, filename)
+
           console.log(`filePath  ${filePath}\n\n`);
           if (imgResponse) {
             const file = fs.createWriteStream(filePath);
@@ -126,15 +122,17 @@ export class Navigator {
           console.log(`stack size is ${this.toVisit.size()}`);
           console.log(`filter size is ${Object.keys(this.filter).length}`);
 
-          const outDir = process.cwd().concat(this.outDir);
-
           const html = await this.page.content();
 
-          const filename = path.resolve(outDir + section + slug + '.html');
+          const filename = path.join(
+            process.cwd(),
+            this.outDir,
+            slug.concat('.html')
+          )
 
+          console.log(`filenamefile ${filename}`)
           fs.writeFileSync(filename, html, { encoding: 'utf8' });
 
-          console.log(`section: ${section}\n`);
           console.log(`slug: ${slug}\n\n`);
         }
         //createDirectoryIfNotExists(section);
@@ -150,8 +148,22 @@ export class Navigator {
   }
 
   async getLinks(url: string, first?: boolean) {
-    if (!first) {
-      await this.page.goto(url);
+
+    const response = await this.page.goto(url);
+    if (first) {
+      if (response) {
+        let redirectUrl: string | undefined;
+        const chain = response.request().redirectChain();
+        console.log(chain.length);
+        if (chain.length > 0) {
+          redirectUrl = chain[0].frame()?.url();
+        }
+        if (redirectUrl) {
+          console.log('used redirectUrl');
+          this.baseUrl = redirectUrl;
+          console.log(`baseurl: ${this.baseUrl}`);
+        }
+      }
     }
 
     const [perf] = JSON.parse(
@@ -266,19 +278,5 @@ export class Navigator {
     this.page.setRequestInterception(false);
     console.log('removed event listener and stoped request interception');
 
-    // check for url redirect
-    if (response) {
-      let redirectUrl: string | undefined;
-      const chain = response.request().redirectChain();
-      console.log(chain.length);
-      if (chain.length > 0) {
-        redirectUrl = chain[0].frame()?.url();
-      }
-      if (redirectUrl) {
-        console.log('used redirectUrl');
-        this.baseUrl = redirectUrl;
-        console.log(`baseurl: ${this.baseUrl}`);
-      }
-    }
   }
 }

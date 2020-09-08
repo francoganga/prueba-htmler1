@@ -90,17 +90,8 @@ export function createDirectoryIfNotExists(dirpath: string, outDir: string) {
 }
 
 export function linksToRelative(html: string) {
-  const hrefs = html.replace(
+  return html.replace(
     /href=("|')((?:https?:\/\/[a-z0-9.-]*)|\/[a-z0-9.]*)(\/.*)\1/gi,
     (_, coma, _g2, g3) => 'href='.concat(coma, '.', g3, coma)
   );
-
-  const scripts = hrefs.replace(
-    /(<script(?:\stype="text\/javascript")?\ssrc=")((?:https?:\/\/[a-z0-9.-]*)|\/[a-z0-9.]*)(\/.*)("><\/script>)/gi,
-    (_, g1, _g2, g3, g4) => {
-      return g1.concat('./', 'assets', g3, g4);
-    }
-  );
-
-  return scripts;
 }
