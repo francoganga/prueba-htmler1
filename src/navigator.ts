@@ -33,6 +33,13 @@ export class Navigator {
       try {
         root = await this.getLinks(this.baseUrl, true);
 
+        const hiddenLength = await this.checkForHidden();
+        if (hiddenLength > 0) {
+          console.log('has hidden');
+          const hidden = await this.getHiddenLinks();
+          hidden.map((l) => this.toVisit.add(new URL(l)));
+        }
+
         console.log(`testing with baseurl: [${this.baseUrl}]`);
 
         console.log(`Found ${root.length} initial links\n`);
@@ -265,5 +272,46 @@ export class Navigator {
     this.page.removeListener('request', handleRequest);
     this.page.setRequestInterception(false);
     console.log('removed event listener and stoped request interception');
+  }
+
+  async checkForHidden() {
+    const links = await this.page.$$('ul');
+
+    let hiddenC = 0;
+
+    for (let link of links) {
+      const style = await link.getProperty('style');
+
+      const val = await style.getProperties();
+
+      const dp = val.get('display');
+
+      const v = await dp?.jsonValue();
+
+      if (v) {
+        hiddenC += 1;
+      }
+    }
+    return hiddenC;
+  }
+
+  async getHiddenLinks() {
+    const hidden = await this.page.$$('a');
+
+    let links: string[] = [];
+
+    for (let i of hidden) {
+      try {
+        await i.hover();
+        const p = await i.getProperty('href');
+        const href = await p.jsonValue();
+        if (typeof href === 'string') {
+          links.push(href);
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+    return links;
   }
 }
