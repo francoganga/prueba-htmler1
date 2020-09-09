@@ -115,7 +115,7 @@ export class Navigator {
             });
           }
         } else {
-          console.log(`stack size is ${this.toVisit.size()}`);
+          console.log(`remaining: ${this.toVisit.size()}`);
           console.log(`filter size is ${Object.keys(this.filter).length}`);
 
           const html = await this.page.content();
@@ -126,10 +126,9 @@ export class Navigator {
             slug.concat('.html')
           );
 
-          console.log(`filenamefile ${filename}`);
+          console.log(`filenamefile ${filename}\n`);
           fs.writeFileSync(filename, html, { encoding: 'utf8' });
 
-          console.log(`slug: ${slug}\n\n`);
         }
         //createDirectoryIfNotExists(section);
       } catch (e) {
