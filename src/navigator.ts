@@ -36,13 +36,18 @@ export class Navigator {
         const hiddenLength = await this.checkForHidden();
         if (hiddenLength > 0) {
           console.log('has hidden');
-          const hidden = await this.getHiddenLinks();
-          hidden.map((l) => this.toVisit.add(new URL(l)));
+          const hidden = (await this.getHiddenLinks()).filter(
+            (l) => l.match(/javascript.*/) == null
+          );
+          hidden.map((l) => {
+            this.toVisit.add(new URL(l));
+            this.filter[l] ||= true;
+          });
         }
 
         console.log(`testing with baseurl: [${this.baseUrl}]`);
 
-        console.log(`Found ${root.length} initial links\n`);
+        console.log(`Found ${this.toVisit.size()} initial links\n`);
         root.map((l) => {
           this.filter[l] ||= true;
           this.toVisit.add(new URL(l));
@@ -128,7 +133,6 @@ export class Navigator {
 
           console.log(`filenamefile ${filename}\n`);
           fs.writeFileSync(filename, html, { encoding: 'utf8' });
-
         }
         //createDirectoryIfNotExists(section);
       } catch (e) {
