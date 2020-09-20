@@ -78,7 +78,7 @@ export function extractSlug(url: string): string {
 }
 
 export function createDirectoryIfNotExists(dirpath: string, outDir: string) {
-  const resolved = path.resolve(process.cwd() + '/' + outDir + dirpath);
+  const resolved = path.resolve(process.cwd() + '/' + outDir + '/' + dirpath);
   console.log(`trying to create dir ${resolved}`);
   try {
     fs.mkdirSync(resolved, { recursive: true });
@@ -98,4 +98,10 @@ export function linksToRelative(html: string) {
 
 export function toFilename(url: string) {
   return url.replace(/\//gi, '_');
+}
+
+export function getDirpath(url: string) {
+  return url
+    .replace(/^((https?:\/\/)|\/)[a-z0-9.]*\//, '')
+    .replace(/(\/.*\/).*/, (a, b) => b);
 }
