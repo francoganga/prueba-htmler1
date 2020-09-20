@@ -1,6 +1,6 @@
 import { Page } from 'puppeteer';
 import { Stack } from 'typescript-collections';
-import { filterBy, extractSlug, removeDuplicated, toFilename } from './utils';
+import { filterBy, extractSlug, removeDuplicated, toFilename, createDirectoryIfNotExists, getDirpath } from './utils';
 import fs from 'fs';
 import path from 'path';
 import fetch from 'node-fetch';
@@ -101,7 +101,7 @@ export class Navigator {
         let slug = toFilename(toVisit.pathname);
 
         //const section = extractSection(toVisit.href);
-        //createDirectoryIfNotExists(section, this.outDir);
+        createDirectoryIfNotExists(getDirpath(toVisit.href), this.outDir);
 
         // Si es un link a una imagen descargar con fetch.
         const isImg = toVisit.href.match(/.*(\.(png|jpg|jpeg))$/);
@@ -128,7 +128,7 @@ export class Navigator {
           const filename = path.join(
             process.cwd(),
             this.outDir,
-            slug.concat('.html')
+            toVisit.pathname.concat('.html')
           );
 
           console.log(`filenamefile ${filename}\n`);
