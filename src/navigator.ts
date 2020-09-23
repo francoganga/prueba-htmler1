@@ -1,6 +1,6 @@
 import { Page, Request } from 'puppeteer';
 import { Stack } from 'typescript-collections';
-import { filterBy, extractSlug, removeDuplicated, toFilename, createDirectoryIfNotExists, getDirpath, fixLinks } from './utils';
+import { filterBy, removeDuplicated, toFilename, createDirectoryIfNotExists, getDirpath, fixLinks, generateBase } from './utils';
 import fs from 'fs';
 import path from 'path';
 import fetch from 'node-fetch';
@@ -53,7 +53,7 @@ export class Navigator {
         console.log(`creating ${mainDir}`);
         fs.mkdirSync(mainDir, { recursive: true });
 
-        const html = fixLinks(await this.page.content());
+        const html = fixLinks(await this.page.content(), 'localhost');
 
         const filename = path.resolve(
           process.cwd().concat(this.outDir),
@@ -119,7 +119,12 @@ export class Navigator {
           console.log(`remaining: ${this.toVisit.size()}`);
           console.log(`filter size is ${Object.keys(this.filter).length}`);
 
-          const html = fixLinks(await this.page.content());
+
+          const base = generateBase(toVisit);
+
+
+          console.log(`base: [${base}]`)
+          const html = fixLinks(await this.page.content(), 'localhost', base);
 
           const filename = path.join(
             process.cwd(),
@@ -262,7 +267,7 @@ export class Navigator {
 
     this.page.on('request', handleRequest);
 
-    const response = await this.page.goto(this.baseUrl, {
+    await this.page.goto(this.baseUrl, {
       waitUntil: 'networkidle0',
       timeout: 14_000,
     });
