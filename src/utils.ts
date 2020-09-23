@@ -1,7 +1,6 @@
-import { Page } from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
-import fetch from 'node-fetch';
+import cheerio from 'cheerio';
 
 interface Hash {
   [index: string]: boolean;
@@ -26,8 +25,6 @@ export function removeDuplicated(lines: string[]) {
     }
   });
 }
-
-export async function getRedirectUrl(url: string) {}
 
 export function filterBy(source: string[], hash: Hash) {
   return source.filter((l) => !hash.hasOwnProperty(l));
@@ -103,5 +100,28 @@ export function toFilename(url: string) {
 export function getDirpath(url: string) {
   return url
     .replace(/^((https?:\/\/)|\/)[a-z0-9.]*\//, '')
-    .replace(/(\/.*\/).*/, (a, b) => b);
+    .replace(/(\/.*\/).*/, (_a, b) => b);
+}
+
+export function fixLinks(html: string, base: string, section?: string) {
+  const $ = cheerio.load(html);
+
+  $('a').each(function (this: Cheerio) {
+    const href = $(this).attr('href');
+    if (href && href.startsWith('/index.php')) {
+      $(this).attr('href', href.replace(/\/index.php\//gi, '').concat('.html'));
+    }
+  });
+
+  if (typeof section !== 'undefined') {
+    $('base').attr('href', path.join(base, section));
+  } else {
+    $('base').attr('href', base);
+  }
+
+  return $.html();
+}
+
+export function generateBase(url: URL): string {
+  return url.pathname.replace(/(\/(?:[a-zA-Z0-9\._-]*\/)*).*/, (_, m1) => m1);
 }
