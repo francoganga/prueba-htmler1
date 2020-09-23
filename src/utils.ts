@@ -2,6 +2,7 @@ import { Page } from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 import fetch from 'node-fetch';
+import cheerio from 'cheerio';
 
 interface Hash {
   [index: string]: boolean;
@@ -104,4 +105,23 @@ export function getDirpath(url: string) {
   return url
     .replace(/^((https?:\/\/)|\/)[a-z0-9.]*\//, '')
     .replace(/(\/.*\/).*/, (a, b) => b);
+}
+
+export function fixLinks(html: string, base?: string) {
+  const $ = cheerio.load(html);
+
+  $('a').each(function (this: Cheerio) {
+    const href = $(this).attr('href');
+    if (href && href.startsWith('/index.php')) {
+      $(this).attr('href', href.replace(/\/index.php\//gi, '').concat('.html'));
+    }
+  });
+
+
+  if (typeof base !== 'undefined') {
+    
+  }
+
+
+  return $.html();
 }

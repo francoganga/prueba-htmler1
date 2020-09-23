@@ -1,6 +1,6 @@
-import { Page } from 'puppeteer';
+import { Page, Request } from 'puppeteer';
 import { Stack } from 'typescript-collections';
-import { filterBy, extractSlug, removeDuplicated, toFilename, createDirectoryIfNotExists, getDirpath } from './utils';
+import { filterBy, extractSlug, removeDuplicated, toFilename, createDirectoryIfNotExists, getDirpath, fixLinks } from './utils';
 import fs from 'fs';
 import path from 'path';
 import fetch from 'node-fetch';
@@ -31,6 +31,7 @@ export class Navigator {
     if (first) {
       let root: string[];
       try {
+        await this.downloadAssets();
         root = await this.getLinks(this.baseUrl, true);
 
         const hiddenLength = await this.checkForHidden();
@@ -52,7 +53,7 @@ export class Navigator {
         console.log(`creating ${mainDir}`);
         fs.mkdirSync(mainDir, { recursive: true });
 
-        const html = await this.page.content();
+        const html = fixLinks(await this.page.content());
 
         const filename = path.resolve(
           process.cwd().concat(this.outDir),
@@ -118,7 +119,7 @@ export class Navigator {
           console.log(`remaining: ${this.toVisit.size()}`);
           console.log(`filter size is ${Object.keys(this.filter).length}`);
 
-          const html = await this.page.content();
+          const html = fixLinks(await this.page.content());
 
           const filename = path.join(
             process.cwd(),
@@ -215,24 +216,24 @@ export class Navigator {
   }
 
   async downloadAssets() {
-    const assetsDir = path.join(process.cwd(), this.outDir, 'assets');
+    // const assetsDir = path.join(process.cwd(), this.outDir, 'assets');
 
-    fs.mkdirSync(assetsDir, { recursive: true });
+    // fs.mkdirSync(assetsDir, { recursive: true });
 
     this.page.setRequestInterception(true);
 
-    const handleRequest = async (request: any) => {
+    const handleRequest = async (request: Request) => {
       try {
         const url = new URL(request.url());
         const resType = request.resourceType();
-        if (resType === 'script' || resType === 'image') {
+        /* TODO personal-unaj: descargar todos, mar-22-sep-2020 */
+        if (resType !== 'document') {
           const asset = await fetch(url);
           console.log(url.href);
 
           const dirpath = path.join(
             process.cwd(),
             this.outDir,
-            'assets',
             url.pathname.replace(/(\/(?:[a-zA-Z0-9\._-]*\/)*).*/, (_, a) => a)
           );
 
@@ -241,9 +242,8 @@ export class Navigator {
           fs.mkdirSync(dirpath, { recursive: true });
 
           if (asset) {
-            console.log('hay asset');
             // const filePath = __dirname.concat('/assets', url.pathname);
-            const filePath = path.join(assetsDir, url.pathname);
+            const filePath = path.join(process.cwd(), this.outDir, url.pathname);
             console.log(`filePath [${filePath}]`);
 
             const buffer = await asset.buffer();
